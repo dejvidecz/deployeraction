@@ -1,0 +1,105 @@
+name: "Custom Deployment"
+description: "Custom deployment"
+inputs:
+  subdomain:
+    description: "Subdomain to upload to"
+    required: true
+  authuser:
+    description: "Name of user"
+    required: true
+    default: "github"
+  branches:
+    description: "Array of branches to deploy separated by ','"
+    required: true
+    default: "master"
+  projectKey:
+    description: "Unique project key"
+    required: true
+  deployerHostname:
+    description: "deployer hostname"
+    required: true
+  apiCallbackUrl:
+    description: "Notify callback url"
+    required: false
+  apiCallbackAuthUser:
+    description: "Notify callback url auth user"
+    required: false
+  apiCallbackAuthPassword:
+    description: "Notify callback url auth password"
+    required: false
+  useNode:
+    description: "Use node?"
+    required: false
+outputs:
+  status:
+    description: "Final status of the deployment"
+runs:
+  using: "composite"
+  steps:
+    - name: Set start timestamp
+      id: start
+      run: |
+        echo "timestamp=$(date +%s)" >> $GITHUB_ENV
+    - name: Notify about start
+      if: inputs.apiCallbackUrl != ''
+      run: |
+        MODIFIED_URL=$(echo "$APICALLBACKURL" | sed "s/_SUBDOMAIN_/${{inputs.subdomain}}/g")          
+        FULL_URL="${MODIFIED_URL}?projectKey=${{ inputs.projectKey }}&authUser=${{ inputs.authuser }}&status=start&branches=${{ inputs.branches }}&runId=${{ github.run_id }}"          
+        response=$(curl -u ${{ inputs.apiCallbackAuthUser }}:${{ inputs.apiCallbackAuthPassword }} -o /dev/null -s -w "%{http_code}\n" "$FULL_URL")
+        if [ "$response" -ne 200 ]; then
+          echo "Failed: HTTP response code is $response"
+          exit 1
+        else
+          echo "Success: HTTP response code is $response"
+        fi          
+
+    - uses: actions/checkout@v4
+
+    - name: Get Composer Cache Directory
+      id: composer-cache
+      run: |
+        echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+    - uses: actions/cache@v3
+      with:
+        path: ${{ steps.composer-cache.outputs.dir }}
+        key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-composer-
+
+    - name: Configure Git safe directory
+      run: |
+        git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+    - uses: actions/setup-node@v4
+      if: inputs.useNode == '1'
+      with:
+        node-version: 18
+
+    - name: Deploy to GoDesign Test
+      uses: deployphp/action@v1
+      with:
+        private-key: ${{ secrets.TEST_PRIVATE_SSH_KEY_GODESIGN }}
+        dep: deploy ${{ inputs.deployerHostname }}
+
+    - name: Notify about success
+      if: inputs.apiCallbackUrl != '' && success()
+      run: |
+        now=$(date +%s)      
+        duration=$((now - $timestamp))
+        MODIFIED_URL=$(echo "$APICALLBACKURL" | sed "s/_SUBDOMAIN_/${{inputs.subdomain}}/g")          
+        FULL_URL="${MODIFIED_URL}?projectKey=${{ inputs.projectKey }}&authUser=${{ inputs.authuser }}&status=done&branches=${{ inputs.branches }}&runId=${{ github.run_id }}&runtime=${duration}"
+        curl -u ${{ inputs.apiCallbackAuthUser }}:${{ inputs.apiCallbackAuthPassword }} "$FULL_URL"
+
+    - name: Notify about failure
+      if: inputs.apiCallbackUrl != '' && failure()
+      run: |
+        MODIFIED_URL=$(echo "$APICALLBACKURL" | sed "s/_SUBDOMAIN_/${{inputs.subdomain}}/g")          
+        FULL_URL="${MODIFIED_URL}?projectKey=${{ inputs.projectKey }}&authUser=${{ inputs.authuser }}&status=error&branches=${{ inputs.branches }}&runId=${{ github.run_id }}"
+        curl -u ${{ inputs.apiCallbackAuthUser }}:${{ inputs.apiCallbackAuthPassword }} "$FULL_URL"
+
+    - name: Notify about cancel
+      if: inputs.apiCallbackUrl != '' && cancelled()
+      run: |
+        MODIFIED_URL=$(echo "$APICALLBACKURL" | sed "s/_SUBDOMAIN_/${{inputs.subdomain}}/g")          
+        FULL_URL="${MODIFIED_URL}?projectKey=${{ inputs.projectKey }}&authUser=${{ inputs.authuser }}&status=cancelled&branches=${{ inputs.branches }}&runId=${{ github.run_id }}"
+        curl -u ${{ inputs.apiCallbackAuthUser }}:${{ inputs.apiCallbackAuthPassword }} "$FULL_URL"
