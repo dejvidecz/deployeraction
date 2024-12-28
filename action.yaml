@@ -66,6 +66,55 @@ runs:
       run: |
         git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
+    - name: Configure Git user
+      run: |
+        git config --global user.email "GitHub Actions"
+        git config --global user.name "actions@github.com"
+      shell: bash
+
+    - name: Extract base branch from input
+      id: extract-base-branch
+      run: |
+        branches_array=($(echo "${{ inputs.branches }}" | tr ',' '\n'))
+        echo "baseBranch=${branches_array[0]}" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Fetch and clean repository
+      run: |
+        git gc
+        git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+        git fetch origin
+        git reset --hard
+        git clean -fd
+      shell: bash
+
+    - name: Checkout base branch
+      run: |
+        if git show-ref -q --heads $baseBranch; then
+          git checkout $baseBranch
+        else
+          git checkout -b $baseBranch --track origin/$baseBranch
+        fi
+        git branch --set-upstream-to=origin/$baseBranch
+        git pull
+      shell: bash
+
+    - name: Create local release branch
+      run: |
+        if git show-ref -q --heads local_release; then
+          git branch -D local_release
+        fi
+        git checkout -b local_release --track origin/$baseBranch
+      shell: bash
+
+    - name: Merge branches
+      run: |
+        branches_array=($(echo "${{ inputs.branches }}" | tr ',' '\n'))
+        for branch in "${branches_array[@]:1}"; do
+          git merge origin/$branch -s ort -m "Merging $branch" --allow-unrelated-histories || exit 1
+        done
+      shell: bash
+
     - name: Get Composer Cache Directory
       shell: bash
       id: composer-cache
