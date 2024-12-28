@@ -61,6 +61,11 @@ runs:
 
     - uses: actions/checkout@v4
 
+    - name: Configure Git safe directory
+      shell: bash
+      run: |
+        git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
     - name: Get Composer Cache Directory
       shell: bash
       id: composer-cache
@@ -73,10 +78,6 @@ runs:
         restore-keys: |
           ${{ runner.os }}-composer-
 
-    - name: Configure Git safe directory
-      shell: bash
-      run: |
-        git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
     - uses: actions/setup-node@v4
       if: inputs.useNode == '1'
