@@ -30,6 +30,9 @@ inputs:
   useNode:
     description: "Use node?"
     required: false
+  ssh:
+    description: "Ssh for upload"
+    required: true
 outputs:
   status:
     description: "Final status of the deployment"
@@ -78,7 +81,7 @@ runs:
     - name: Deploy to GoDesign Test
       uses: deployphp/action@v1
       with:
-        private-key: ${{ secrets.TEST_PRIVATE_SSH_KEY_GODESIGN }}
+        private-key: ${{ inputs.ssh }}
         dep: deploy ${{ inputs.deployerHostname }}
       env:
         SUBDOMAIN: ${{ inputs.subdomain }}
