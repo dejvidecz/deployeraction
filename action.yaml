@@ -1,4 +1,4 @@
-name: "Custom Deployment"
+name: "dejvidecz/deployeraction"
 description: "Custom deployment"
 inputs:
   subdomain:
