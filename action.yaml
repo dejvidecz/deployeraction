@@ -80,6 +80,11 @@ runs:
       with:
         private-key: ${{ secrets.TEST_PRIVATE_SSH_KEY_GODESIGN }}
         dep: deploy ${{ inputs.deployerHostname }}
+      env:
+        SUBDOMAIN: ${{ inputs.subdomain }}
+        BRANCHES: ${{ inputs.branches }}
+        APICALLBACKURL: ${{ inputs.apiCallbackUrl }}
+
 
     - name: Notify about success
       if: inputs.apiCallbackUrl != '' && success()
