@@ -159,7 +159,7 @@ runs:
       uses: actions/cache/save@v4
       with:
         path: .github/global-cache
-        key: ${{ runner.os }}-global-cache
+        key: ${{ steps.globalcache.outputs.cache-primary-key }}
 
     - name: Notify about success
       if: inputs.apiCallbackUrl != '' && success()
