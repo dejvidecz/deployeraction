@@ -155,6 +155,12 @@ runs:
         APICALLBACKURL: ${{ inputs.apiCallbackUrl }}
 
 
+    - name: Save updated cache
+      uses: actions/cache/save@v3
+      with:
+        path: .github/global-cache
+        key: ${{ runner.os }}-global-cache
+
     - name: Notify about success
       if: inputs.apiCallbackUrl != '' && success()
       shell: bash
