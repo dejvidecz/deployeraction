@@ -155,11 +155,16 @@ runs:
         APICALLBACKURL: ${{ inputs.apiCallbackUrl }}
 
 
+    - name: Compute cache hash
+      id: cache-hash
+      run: |
+        echo "cache-hash=$(find .github/global-cache -type f -exec md5sum {} + | sort -k 2 | md5sum | cut -d ' ' -f 1)" >> $GITHUB_ENV
+
     - name: Save updated cache
       uses: actions/cache/save@v4
       with:
         path: .github/global-cache
-        key: ${{ runner.os }}-global-cache-${{ github.run_id }}
+        key: ${{ runner.os }}-global-cache-${{ env.cache-hash }}
 
 
     - name: Notify about success
