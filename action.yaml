@@ -164,7 +164,6 @@ runs:
     - name: Remove old cache
       shell: bash
       run: |
-        gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
         gh api -H "Accept: application/vnd.github.v3+json" /repos/${{ github.repository }}/actions/caches |
         jq -r '.actions_caches[] | select(.key | startswith("${{ runner.os }}-global-cache-")) | "\(.id) \(.created_at)"' |
         sort -k2 -r | tail -n +2 | cut -d' ' -f1 |
