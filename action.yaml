@@ -132,7 +132,7 @@ runs:
 
     - name: Restore global cache
       id: globalcache
-      uses: actions/cache@v3
+      uses: actions/cache/restore@v3
       with:
         path: .github/global-cache
         key: ${{ runner.os }}-global-cache
