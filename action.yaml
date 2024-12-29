@@ -18,6 +18,9 @@ inputs:
   deployerHostname:
     description: "deployer hostname"
     required: true
+  deployerArguments:
+    description: "deployer arguments"
+    required: false
   apiCallbackUrl:
     description: "Notify callback url"
     required: false
@@ -137,7 +140,7 @@ runs:
       uses: deployphp/action@v1
       with:
         private-key: ${{ inputs.ssh }}
-        dep: deploy ${{ inputs.deployerHostname }}
+        dep: deploy ${{ inputs.deployerHostname }} ${{inputs.deployerArguments}}
       env:
         SUBDOMAIN: ${{ inputs.subdomain }}
         BRANCHES: ${{ inputs.branches }}
@@ -157,7 +160,7 @@ runs:
     - name: Notify about failure
       if: inputs.apiCallbackUrl != '' && failure()
       shell: bash
-      run: |
+      run: |        
         MODIFIED_URL=$(echo "${{inputs.apiCallbackUrl}}" | sed "s/_SUBDOMAIN_/${{inputs.subdomain}}/g")          
         FULL_URL="${MODIFIED_URL}?projectKey=${{ inputs.projectKey }}&authUser=${{ inputs.authuser }}&status=error&branches=${{ inputs.branches }}&runId=${{ github.run_id }}"
         curl -u ${{ inputs.apiCallbackAuthUser }}:${{ inputs.apiCallbackAuthPassword }} "$FULL_URL"
