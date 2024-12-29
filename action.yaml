@@ -136,8 +136,7 @@ runs:
       with:
         path: .github/global-cache
         key: ${{ runner.os }}-global-cache
-        restore-keys: |
-          ${{ runner.os }}-global-cache
+        restore-keys: |          
           ${{ runner.os }}-global-cache-
 
     - uses: actions/setup-node@v4
