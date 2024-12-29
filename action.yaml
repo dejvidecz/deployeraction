@@ -138,6 +138,7 @@ runs:
         key: ${{ runner.os }}-global-cache
         restore-keys: |
           ${{ runner.os }}-global-cache
+          ${{ runner.os }}-global-cache-
 
     - uses: actions/setup-node@v4
       if: inputs.useNode == '1'
@@ -159,7 +160,8 @@ runs:
       uses: actions/cache/save@v4
       with:
         path: .github/global-cache
-        key: ${{ steps.globalcache.outputs.cache-primary-key }}
+        key: ${{ runner.os }}-global-cache-${{ github.run_id }}
+
 
     - name: Notify about success
       if: inputs.apiCallbackUrl != '' && success()
