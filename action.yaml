@@ -36,6 +36,9 @@ inputs:
   ssh:
     description: "Ssh for upload"
     required: true
+  hostname:
+    description: "Hostname for upload"
+    required: false
 outputs:
   status:
     description: "Final status of the deployment"
@@ -153,6 +156,7 @@ runs:
         SUBDOMAIN: ${{ inputs.subdomain }}
         BRANCHES: ${{ inputs.branches }}
         APICALLBACKURL: ${{ inputs.apiCallbackUrl }}
+        HOSTNAME: ${{ inputs.hostname }}
 
 
     - name: Save updated cache
