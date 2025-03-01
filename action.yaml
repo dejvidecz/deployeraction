@@ -102,6 +102,8 @@ runs:
           git checkout -b $baseBranch --track origin/$baseBranch
         fi
         git branch --set-upstream-to=origin/$baseBranch
+        git fetch origin
+        git reset --hard origin/$baseBranch  # Přidáno - vynucení remote verze
         git pull
       shell: bash
 
