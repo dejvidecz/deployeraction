@@ -149,6 +149,9 @@ runs:
       with:
         node-version: 18
 
+    - name: Kill all ssh-agent processes
+      run: killall ssh-agent || true
+
     - name: Deploy to GoDesign Test
       uses: deployphp/action@v1
       with:
