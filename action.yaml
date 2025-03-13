@@ -151,6 +151,7 @@ runs:
 
     - name: Kill all ssh-agent processes
       run: killall ssh-agent || true
+      shell: bash
 
     - name: Deploy to GoDesign Test
       uses: deployphp/action@v1
