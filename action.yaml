@@ -153,6 +153,10 @@ runs:
       run: killall ssh-agent || true
       shell: bash
 
+    - name: Remove root ssh
+      run: rm /root/.ssh/config || true
+      shell: bash
+
     - name: Deploy to GoDesign Test
       uses: deployphp/action@v1
       with:
