@@ -39,6 +39,10 @@ inputs:
   hostname:
     description: "Hostname for upload"
     required: false
+  useAndroid:
+    description: "Use android cache?"
+    required: false
+
 outputs:
   status:
     description: "Final status of the deployment"
@@ -141,8 +145,23 @@ runs:
       with:
         path: .github/global-cache
         key: ${{ runner.os }}-global-cache
-        restore-keys: |          
+        restore-keys: |
           ${{ runner.os }}-global-cache-
+
+    - name: Restore Android Gradle & SDK cache
+      if: inputs.useAndroid == '1'
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+          ${{ env.ANDROID_SDK_ROOT }}/platforms
+          ${{ env.ANDROID_SDK_ROOT }}/build-tools
+          ${{ env.ANDROID_SDK_ROOT }}/ndk
+          ${{ env.ANDROID_SDK_ROOT }}/cmake
+        key: android-${{ runner.os }}-${{ hashFiles('mobile/android/gradle/wrapper/gradle-wrapper.properties') }}
+        restore-keys: |
+          android-${{ runner.os }}-
 
     - uses: actions/setup-node@v4
       if: inputs.useNode == '1'
@@ -174,6 +193,19 @@ runs:
       with:
         path: .github/global-cache
         key: ${{ runner.os }}-global-cache-${{ github.run_id }}
+
+    - name: Save Android Gradle & SDK cache
+      if: inputs.useAndroid == '1'
+      uses: actions/cache/save@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+          ${{ env.ANDROID_SDK_ROOT }}/platforms
+          ${{ env.ANDROID_SDK_ROOT }}/build-tools
+          ${{ env.ANDROID_SDK_ROOT }}/ndk
+          ${{ env.ANDROID_SDK_ROOT }}/cmake
+        key: android-${{ runner.os }}-${{ hashFiles('mobile/android/gradle/wrapper/gradle-wrapper.properties') }}
 
 
     - name: Notify about success
