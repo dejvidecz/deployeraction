@@ -161,7 +161,7 @@ runs:
           /opt/android-sdk-linux/cmake
         key: android-${{ runner.os }}
         restore-keys: |
-          android-${{ runner.os }}-
+          android-${{ runner.os }}
 
     - uses: actions/setup-node@v4
       if: inputs.useNode == '1'
