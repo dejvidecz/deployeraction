@@ -155,6 +155,7 @@ runs:
         path: |
           ~/.gradle/caches
           ~/.gradle/wrapper
+          ~/.gradle/wrapper/dists
           /opt/android-sdk-linux/platforms
           /opt/android-sdk-linux/build-tools
           /opt/android-sdk-linux/ndk
