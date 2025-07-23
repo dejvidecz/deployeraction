@@ -159,7 +159,7 @@ runs:
           /opt/android-sdk-linux/build-tools
           /opt/android-sdk-linux/ndk
           /opt/android-sdk-linux/cmake
-        key: android-${{ runner.os }}-${{ hashFiles('mobile/android/gradle/wrapper/gradle-wrapper.properties') }}
+        key: android-${{ runner.os }}
         restore-keys: |
           android-${{ runner.os }}-
 
@@ -205,7 +205,7 @@ runs:
           /opt/android-sdk-linux/build-tools
           /opt/android-sdk-linux/ndk
           /opt/android-sdk-linux/cmake
-        key: android-${{ runner.os }}-${{ hashFiles('mobile/android/gradle/wrapper/gradle-wrapper.properties') }}
+        key: android-${{ runner.os }}
 
 
     - name: Notify about success
