@@ -155,10 +155,10 @@ runs:
         path: |
           ~/.gradle/caches
           ~/.gradle/wrapper
-          ${{ env.ANDROID_SDK_ROOT }}/platforms
-          ${{ env.ANDROID_SDK_ROOT }}/build-tools
-          ${{ env.ANDROID_SDK_ROOT }}/ndk
-          ${{ env.ANDROID_SDK_ROOT }}/cmake
+          /opt/android-sdk-linux/platforms
+          /opt/android-sdk-linux/build-tools
+          /opt/android-sdk-linux/ndk
+          /opt/android-sdk-linux/cmake
         key: android-${{ runner.os }}-${{ hashFiles('mobile/android/gradle/wrapper/gradle-wrapper.properties') }}
         restore-keys: |
           android-${{ runner.os }}-
@@ -201,10 +201,10 @@ runs:
         path: |
           ~/.gradle/caches
           ~/.gradle/wrapper
-          ${{ env.ANDROID_SDK_ROOT }}/platforms
-          ${{ env.ANDROID_SDK_ROOT }}/build-tools
-          ${{ env.ANDROID_SDK_ROOT }}/ndk
-          ${{ env.ANDROID_SDK_ROOT }}/cmake
+          /opt/android-sdk-linux/platforms
+          /opt/android-sdk-linux/build-tools
+          /opt/android-sdk-linux/ndk
+          /opt/android-sdk-linux/cmake
         key: android-${{ runner.os }}-${{ hashFiles('mobile/android/gradle/wrapper/gradle-wrapper.properties') }}
 
 
