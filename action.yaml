@@ -153,6 +153,7 @@ runs:
       uses: actions/cache/restore@v4
       with:
         path: |
+          ~/.npm
           ~/.gradle/caches
           ~/.gradle/wrapper
           ~/.gradle/wrapper/dists
