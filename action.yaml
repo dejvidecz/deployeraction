@@ -91,7 +91,7 @@ runs:
 
     - name: Fetch and clean repository
       run: |
-        git gc
+        git gc --force
         git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
         git fetch origin
         git reset --hard
