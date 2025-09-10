@@ -59,15 +59,24 @@ runs:
       if: inputs.apiCallbackUrl != ''
       shell: bash
       run: |
-        MODIFIED_URL=$(echo "${{inputs.apiCallbackUrl}}" | sed "s/_SUBDOMAIN_/${{inputs.subdomain}}/g")          
-        FULL_URL="${MODIFIED_URL}?projectKey=${{ inputs.projectKey }}&authUser=${{ inputs.authuser }}&status=start&branches=${{ inputs.branches }}&runId=${{ github.run_id }}&jobId=${{github.job}}"          
-        response=$(curl -u ${{ inputs.apiCallbackAuthUser }}:${{ inputs.apiCallbackAuthPassword }} -o /dev/null -s -w "%{http_code}\n" "$FULL_URL")
-        if [ "$response" -ne 200 ]; then
-          echo "Failed: HTTP response code is $response"
+        MODIFIED_URL=$(echo "${{inputs.apiCallbackUrl}}" | sed "s/_SUBDOMAIN_/${{inputs.subdomain}}/g")
+        FULL_URL="${MODIFIED_URL}?projectKey=${{ inputs.projectKey }}&authUser=${{ inputs.authuser }}&status=start&branches=${{ inputs.branches }}&runId=${{ github.run_id }}&jobId=${{github.job}}"
+        # Increase timeouts and add retries to handle transient network issues
+        http_code=$(curl \
+          --retry 5 \
+          --retry-connrefused \
+          --retry-delay 2 \
+          --connect-timeout 10 \
+          --max-time 120 \
+          -u ${{ inputs.apiCallbackAuthUser }}:${{ inputs.apiCallbackAuthPassword }} \
+          -o /dev/null -sS -w "%{http_code}\n" "$FULL_URL")
+        curl_exit=$?
+        if [ $curl_exit -ne 0 ] || [ "$http_code" -ne 200 ]; then
+          echo "Failed: curl_exit=$curl_exit, http_code=$http_code"
           exit 1
         else
-          echo "Success: HTTP response code is $response"
-        fi          
+          echo "Success: HTTP response code is $http_code"
+        fi
 
     - uses: actions/checkout@v4
 
@@ -220,7 +229,7 @@ runs:
         duration=$((now - $timestamp))
         MODIFIED_URL=$(echo "${{inputs.apiCallbackUrl}}" | sed "s/_SUBDOMAIN_/${{inputs.subdomain}}/g")          
         FULL_URL="${MODIFIED_URL}?projectKey=${{ inputs.projectKey }}&authUser=${{ inputs.authuser }}&status=done&branches=${{ inputs.branches }}&runId=${{ github.run_id }}&runtime=${duration}&jobId=${{github.job}}"
-        curl -u ${{ inputs.apiCallbackAuthUser }}:${{ inputs.apiCallbackAuthPassword }} "$FULL_URL"
+        curl --retry 5 --retry-connrefused --retry-delay 2 --connect-timeout 10 --max-time 120 -u ${{ inputs.apiCallbackAuthUser }}:${{ inputs.apiCallbackAuthPassword }} "$FULL_URL"
 
     - name: Notify about failure
       if: inputs.apiCallbackUrl != '' && failure()
@@ -228,7 +237,7 @@ runs:
       run: |        
         MODIFIED_URL=$(echo "${{inputs.apiCallbackUrl}}" | sed "s/_SUBDOMAIN_/${{inputs.subdomain}}/g")          
         FULL_URL="${MODIFIED_URL}?projectKey=${{ inputs.projectKey }}&authUser=${{ inputs.authuser }}&status=error&branches=${{ inputs.branches }}&runId=${{ github.run_id }}&jobId=${{github.job}}"
-        curl -u ${{ inputs.apiCallbackAuthUser }}:${{ inputs.apiCallbackAuthPassword }} "$FULL_URL"
+        curl --retry 5 --retry-connrefused --retry-delay 2 --connect-timeout 10 --max-time 120 -u ${{ inputs.apiCallbackAuthUser }}:${{ inputs.apiCallbackAuthPassword }} "$FULL_URL"
 
     - name: Notify about cancel
       if: inputs.apiCallbackUrl != '' && cancelled()
@@ -236,4 +245,4 @@ runs:
       run: |
         MODIFIED_URL=$(echo "${{inputs.apiCallbackUrl}}" | sed "s/_SUBDOMAIN_/${{inputs.subdomain}}/g")          
         FULL_URL="${MODIFIED_URL}?projectKey=${{ inputs.projectKey }}&authUser=${{ inputs.authuser }}&status=cancelled&branches=${{ inputs.branches }}&runId=${{ github.run_id }}&jobId=${{github.job}}"
-        curl -u ${{ inputs.apiCallbackAuthUser }}:${{ inputs.apiCallbackAuthPassword }} "$FULL_URL"
+        curl --retry 5 --retry-connrefused --retry-delay 2 --connect-timeout 10 --max-time 120 -u ${{ inputs.apiCallbackAuthUser }}:${{ inputs.apiCallbackAuthPassword }} "$FULL_URL"
