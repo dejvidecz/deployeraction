@@ -36,6 +36,9 @@ inputs:
   ssh:
     description: "Ssh for upload"
     required: true
+  ssh_passphrase:
+    description: "Ssh password for upload"
+    required: false
   hostname:
     description: "Hostname for upload"
     required: false
@@ -87,8 +90,8 @@ runs:
 
     - name: Configure Git user
       run: |
-        git config --global user.email "GitHub Actions"
-        git config --global user.name "actions@github.com"
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
       shell: bash
 
     - name: Extract base branch from input
@@ -187,10 +190,49 @@ runs:
       run: rm /root/.ssh/config || true
       shell: bash
 
-    - name: Deploy to GoDesign Test
+    - name: Start ssh-agent and add key (with optional passphrase)
+      id: ssh
+      shell: bash
+      env:
+       SSH_PRIVATE_KEY: ${{ inputs.ssh }}
+       SSH_PASSPHRASE: ${{ inputs.ssh_passphrase }}
+      run: |
+       set -euo pipefail
+       eval "$(ssh-agent -s)"      
+       echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> $GITHUB_ENV
+       echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> $GITHUB_ENV
+       mkdir -p ~/.ssh
+       chmod 700 ~/.ssh
+       # ulož klíč
+       printf "%s" "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+       chmod 600 ~/.ssh/id_rsa
+       
+       if [ -n "${SSH_PASSPHRASE:-}" ]; then
+         # připrav askpass helper
+         printf '#!/usr/bin/env bash\necho "$SSH_PASSPHRASE"\n' > ~/askpass.sh
+         chmod +x ~/askpass.sh
+         # přidej klíč bez TTY
+         DISPLAY=none SSH_ASKPASS=~/askpass.sh setsid -w ssh-add ~/.ssh/id_rsa </dev/null
+       else
+         # klíč bez passphrase
+         ssh-add ~/.ssh/id_rsa
+       fi
+       
+       # volitelné: předvyřeš known_hosts (doporučuju)
+       touch ~/.ssh/known_hosts
+       chmod 644 ~/.ssh/known_hosts
+       # ssh-keyscan na cílový host (pokud ho znáš už tady)
+       if [ -n "${{ inputs.hostname }}" ]; then
+         ssh-keyscan -T 5 "${{ inputs.hostname }}" >> ~/.ssh/known_hosts 2>/dev/null || echo "Warning: ssh-keyscan failed for ${{ inputs.hostname }}"
+       fi
+
+       # cleanup askpass helper
+       rm -f ~/askpass.sh
+
+    - name: Deploy to server
       uses: deployphp/action@v1
       with:
-        private-key: ${{ inputs.ssh }}
+        skip-ssh-setup: true   # <- důležité, ať nesahá na SSH, už běží náš agent
         dep: deploy ${{ inputs.deployerHostname }} ${{inputs.deployerArguments}}
       env:
         SUBDOMAIN: ${{ inputs.subdomain }}
