@@ -197,17 +197,39 @@ runs:
        mkdir -p ~/.ssh
        chmod 700 ~/.ssh
 
+       # Validate SSH key format before adding
+       if ! echo "$SSH_PRIVATE_KEY" | grep -q "BEGIN.*PRIVATE KEY"; then
+         echo "Error: SSH private key is missing proper header/footer"
+         echo "Key should start with '-----BEGIN OPENSSH PRIVATE KEY-----' or similar"
+         exit 1
+       fi
+
+       # Uložíme klíč do dočasného souboru s pravilnými právy
+       echo "$SSH_PRIVATE_KEY" > ~/.ssh/temp_key
+       chmod 600 ~/.ssh/temp_key
+
        if [ -n "${SSH_PASSPHRASE:-}" ]; then
          # připrav askpass helper pro passphrase
          printf '#!/usr/bin/env bash\necho "$SSH_PASSPHRASE"\n' > ~/askpass.sh
          chmod +x ~/askpass.sh
-         # přidej klíč přímo z stdin bez uložení na disk
-         printf "%s" "$SSH_PRIVATE_KEY" | DISPLAY=none SSH_ASKPASS=~/askpass.sh setsid -w ssh-add - </dev/null
+         # přidej klíč ze souboru
+         DISPLAY=none SSH_ASKPASS=~/askpass.sh setsid -w ssh-add ~/.ssh/temp_key </dev/null || {
+           echo "Error: Failed to add SSH key. Check key format and passphrase."
+           rm -f ~/.ssh/temp_key ~/askpass.sh
+           exit 1
+         }
          rm -f ~/askpass.sh
        else
-         # klíč bez passphrase - přímo ze stdin
-         printf "%s" "$SSH_PRIVATE_KEY" | ssh-add -
+         # klíč bez passphrase - ze souboru
+         ssh-add ~/.ssh/temp_key || {
+           echo "Error: Failed to add SSH key. Check key format."
+           rm -f ~/.ssh/temp_key
+           exit 1
+         }
        fi
+
+       # Smazání dočasného klíče
+       rm -f ~/.ssh/temp_key
 
        # known_hosts setup
        touch ~/.ssh/known_hosts
