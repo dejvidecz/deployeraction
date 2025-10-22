@@ -39,6 +39,10 @@ inputs:
   useAndroid:
     description: "Use android cache?"
     required: false
+  nodeVersion:
+    description: "Node.js version"
+    required: false
+    default: "18"
 
 outputs:
   status:
@@ -173,7 +177,7 @@ runs:
     - uses: actions/setup-node@v4
       if: inputs.useNode == '1'
       with:
-        node-version: 18
+        node-version: ${{ inputs.nodeVersion }}
 
     - name: Kill all ssh-agent processes
       run: killall ssh-agent || true
@@ -187,68 +191,67 @@ runs:
       id: ssh
       shell: bash
       env:
-       SSH_PRIVATE_KEY: ${{ inputs.ssh }}
-       SSH_PASSPHRASE: ${{ inputs.ssh_passphrase }}
+        SSH_PRIVATE_KEY: ${{ inputs.ssh }}
+        SSH_PASSPHRASE: ${{ inputs.ssh_passphrase }}
       run: |
-       set -euo pipefail
-       eval "$(ssh-agent -s)"
-       echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> $GITHUB_ENV
-       echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> $GITHUB_ENV
-       mkdir -p ~/.ssh
-       chmod 700 ~/.ssh
+        set -euo pipefail
+        eval "$(ssh-agent -s)"
+        echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> $GITHUB_ENV
+        echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> $GITHUB_ENV
+        mkdir -p ~/.ssh
+        chmod 700 ~/.ssh
 
-       # Validate SSH key format before adding
-       if ! echo "$SSH_PRIVATE_KEY" | grep -q "BEGIN.*PRIVATE KEY"; then
-         echo "Error: SSH private key is missing proper header/footer"
-         echo "Key should start with '-----BEGIN OPENSSH PRIVATE KEY-----' or similar"
-         exit 1
-       fi
+        # Validate SSH key format before adding
+        if ! echo "$SSH_PRIVATE_KEY" | grep -q "BEGIN.*PRIVATE KEY"; then
+          echo "Error: SSH private key is missing proper header/footer"
+          echo "Key should start with '-----BEGIN OPENSSH PRIVATE KEY-----' or similar"
+          exit 1
+        fi
 
-       # Uložíme klíč do dočasného souboru s pravilnými právy
-       echo "$SSH_PRIVATE_KEY" > ~/.ssh/temp_key
-       chmod 600 ~/.ssh/temp_key
+        # Uložíme klíč do dočasného souboru s pravilnými právy
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/temp_key
+        chmod 600 ~/.ssh/temp_key
 
-       if [ -n "${SSH_PASSPHRASE:-}" ]; then
-         # připrav askpass helper pro passphrase
-         printf '#!/usr/bin/env bash\necho "$SSH_PASSPHRASE"\n' > ~/askpass.sh
-         chmod +x ~/askpass.sh
-         # přidej klíč ze souboru
-         DISPLAY=none SSH_ASKPASS=~/askpass.sh setsid -w ssh-add ~/.ssh/temp_key </dev/null || {
-           echo "Error: Failed to add SSH key. Check key format and passphrase."
-           rm -f ~/.ssh/temp_key ~/askpass.sh
-           exit 1
-         }
-         rm -f ~/askpass.sh
-       else
-         # klíč bez passphrase - ze souboru
-         ssh-add ~/.ssh/temp_key || {
-           echo "Error: Failed to add SSH key. Check key format."
-           rm -f ~/.ssh/temp_key
-           exit 1
-         }
-       fi
+        if [ -n "${SSH_PASSPHRASE:-}" ]; then
+          # připrav askpass helper pro passphrase
+          printf '#!/usr/bin/env bash\necho "$SSH_PASSPHRASE"\n' > ~/askpass.sh
+          chmod +x ~/askpass.sh
+          # přidej klíč ze souboru
+          DISPLAY=none SSH_ASKPASS=~/askpass.sh setsid -w ssh-add ~/.ssh/temp_key </dev/null || {
+            echo "Error: Failed to add SSH key. Check key format and passphrase."
+            rm -f ~/.ssh/temp_key ~/askpass.sh
+            exit 1
+          }
+          rm -f ~/askpass.sh
+        else
+          # klíč bez passphrase - ze souboru
+          ssh-add ~/.ssh/temp_key || {
+            echo "Error: Failed to add SSH key. Check key format."
+            rm -f ~/.ssh/temp_key
+            exit 1
+          }
+        fi
 
-       # Smazání dočasného klíče
-       rm -f ~/.ssh/temp_key
+        # Smazání dočasného klíče
+        rm -f ~/.ssh/temp_key
 
-       # known_hosts setup
-       touch ~/.ssh/known_hosts
-       chmod 644 ~/.ssh/known_hosts
-       if [ -n "${{ inputs.hostname }}" ]; then
-         ssh-keyscan -T 5 "${{ inputs.hostname }}" >> ~/.ssh/known_hosts 2>/dev/null || echo "Warning: ssh-keyscan failed for ${{ inputs.hostname }}"
-       fi
+        # known_hosts setup
+        touch ~/.ssh/known_hosts
+        chmod 644 ~/.ssh/known_hosts
+        if [ -n "${{ inputs.hostname }}" ]; then
+          ssh-keyscan -T 5 "${{ inputs.hostname }}" >> ~/.ssh/known_hosts 2>/dev/null || echo "Warning: ssh-keyscan failed for ${{ inputs.hostname }}"
+        fi
 
     - name: Deploy to server
       uses: deployphp/action@v1
       with:
-        skip-ssh-setup: true   # <- důležité, ať nesahá na SSH, už běží náš agent
+        skip-ssh-setup: true # <- důležité, ať nesahá na SSH, už běží náš agent
         dep: deploy ${{ inputs.deployerHostname }} ${{inputs.deployerArguments}}
       env:
         SUBDOMAIN: ${{ inputs.subdomain }}
         BRANCHES: ${{ inputs.branches }}
         APICALLBACKURL: ${{ inputs.apiCallbackUrl }}
         HOSTNAME: ${{ inputs.hostname }}
-
 
     - name: Save updated cache
       uses: actions/cache/save@v4
@@ -271,7 +274,6 @@ runs:
           /opt/android-sdk-linux/cmake
         key: andr-${{ runner.os }}
 
-
     - name: Notify about success
       if: inputs.apiCallbackUrl != '' && success()
       shell: bash
@@ -285,7 +287,7 @@ runs:
     - name: Notify about failure
       if: inputs.apiCallbackUrl != '' && failure()
       shell: bash
-      run: |        
+      run: |
         MODIFIED_URL=$(echo "${{inputs.apiCallbackUrl}}" | sed "s/_SUBDOMAIN_/${{inputs.subdomain}}/g")          
         FULL_URL="${MODIFIED_URL}?projectKey=${{ inputs.projectKey }}&authUser=${{ inputs.authuser }}&status=error&branches=${{ inputs.branches }}&runId=${{ github.run_id }}&jobId=${{github.job}}"
         curl --retry 5 --retry-connrefused --retry-delay 2 --connect-timeout 10 --max-time 120 "$FULL_URL"
