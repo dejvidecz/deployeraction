@@ -51,10 +51,6 @@ inputs:
   useAndroid:
     description: "Use android cache?"
     required: false
-  nodeVersion:
-    description: "Node.js version"
-    required: false
-    default: "18"
 
 runs:
   using: "composite"
