@@ -36,6 +36,18 @@ inputs:
   hostname:
     description: "Hostname for upload"
     required: false
+  deployerBinary:
+    description: "Path to local Deployer binary"
+    required: false
+    default: ""
+  deployerVersion:
+    description: "Deployer version to download"
+    required: false
+    default: ""
+  nodeVersion:
+    description: "Node.js version to use"
+    required: false
+    default: "18"
   useAndroid:
     description: "Use android cache?"
     required: false
@@ -44,9 +56,6 @@ inputs:
     required: false
     default: "18"
 
-outputs:
-  status:
-    description: "Final status of the deployment"
 runs:
   using: "composite"
   steps:
@@ -247,6 +256,8 @@ runs:
       with:
         skip-ssh-setup: true # <- důležité, ať nesahá na SSH, už běží náš agent
         dep: deploy ${{ inputs.deployerHostname }} ${{inputs.deployerArguments}}
+        deployer-binary: ${{ inputs.deployerBinary }}
+        deployer-version: ${{ inputs.deployerVersion }}
       env:
         SUBDOMAIN: ${{ inputs.subdomain }}
         BRANCHES: ${{ inputs.branches }}
