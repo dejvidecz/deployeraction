@@ -263,7 +263,7 @@ runs:
         skip-ssh-setup: true # <- důležité, ať nesahá na SSH, už běží náš agent
         dep: deploy ${{ inputs.deployerHostname }} ${{inputs.deployerArguments}}
         deployer-binary: ${{ env.DEPLOYER_BINARY || inputs.deployerBinary }}
-        verbosity: -vv
+        verbosity: -v
       env:
         SUBDOMAIN: ${{ inputs.subdomain }}
         BRANCHES: ${{ inputs.branches }}
